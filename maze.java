@@ -1,8 +1,7 @@
-
 public class maze {
 
-	private static int colsize = 25;
-	private static int rowsize = 50;
+	private static int colsize = 25;	//25
+	private static int rowsize = 50;	//50
 	private int[] row = new int[rowsize];
 	private int[] col = new int[colsize];
 	private int[][] labrynth = new int[rowsize][colsize];
@@ -15,6 +14,15 @@ public class maze {
 		this.row = fill(rowsize);
 		this.col = fill(colsize);
 		this.labrynth = generateMaze();
+	}
+
+	public void copyMaze(maze map) {
+		for(int row = 0; row < 25; row++){
+			for(int col = 0; col < 50; col++){
+				//System.out.println(map.getMazePoint(row, col));
+				this.setMazePoint(row, col, map.getMazePoint(row, col));
+			}
+		}
 	}
 
 	public void setMaze(int[][] lab) {
@@ -100,7 +108,7 @@ public class maze {
 
 		for (int i = 0; i < colsize; i++) {
 			for (int j = 0; j < rowsize; j++) {
-				if (((this.row[j] + this.col[i]) % 10) >= 7) {
+				if (((this.row[j] + this.col[i]) % 10) >= 7) { //Make 7 for actual game
 					ret[i][j] = 1;
 				} else {
 					ret[i][j] = 0;
@@ -157,7 +165,7 @@ public class maze {
 				|| (tru && halt > 0)) {
 			this.setKeyPos((int) (Math.random() * colsize - 1), (int) (Math.random() * rowsize - 1));
 			halt -= 1;
-			System.out.println(keypos[0] + ", " + keypos[1]);
+			//System.out.println(keypos[0] + ", " + keypos[1]);
 		}
 		ret[this.keyPos[0]][this.keyPos[1]] = 7;
 
@@ -165,14 +173,15 @@ public class maze {
 
 	}
 
-	public String printMap(int[][] map, player pie) {
+	public String printMap(int[][] map, player pie, bomb bomb, boolean vis) {
 
 		int[] piepos = pie.getPosition();
+		int[] bombpos = bomb.getPosition();
 		String ret = "";
 		for (int i = 0; i < colsize; i++) {
 			for (int j = 0; j < rowsize; j++) {
 				// Math.abs(i - piepos[0]) < 3 && Math.abs(j - piepos[1]) < 4
-				if (Math.sqrt(Math.pow((i - piepos[0]), 2) + Math.pow(j - piepos[1], 2)) <= 4.25) {
+				if ((Math.sqrt(Math.pow((i - piepos[0]), 2) + Math.pow(j - piepos[1], 2)) <= 4.25) || ((Math.sqrt(Math.pow((i - bombpos[0]), 2) + Math.pow(j - bombpos[1], 2)) <= (bomb.getRange() * 1.5)) && bomb.getPlaced())|| vis)  { //4.25 for limited view
 					if (map[i][j] == 1) {
 						ret += "#"; // █
 					} else if (map[i][j] == 2) {
@@ -185,6 +194,10 @@ public class maze {
 						ret += "~"; // ¶
 					} else if (map[i][j] == 8) {
 						ret += "[]";
+					} else if (map[i][j] == 6) {
+						ret += "ò";
+					} else if (map[i][j] == 9) {
+						ret += "*";
 					} else {
 						ret += " ."; // ░▒
 					}

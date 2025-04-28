@@ -1,11 +1,13 @@
-
 public class meat {
 	
 	private int[] position = new int[2];
+
+	private boolean alive;
 	
 	public meat(int row, int collumn) {
 		this.position[0] = row;
 		this.position[1] = collumn;
+		this.alive = true;
 	}
 	
 	
@@ -17,6 +19,13 @@ public class meat {
 		this.position[1] = col;
 	}
 	
+	public boolean getAlive(){
+		return this.alive;
+	}
+
+	public void setAlive(boolean alive){
+		this.alive = alive;
+	}
 	
 	public boolean pieAte(player pie) {
 		int[] piepos = pie.getPosition();
@@ -27,8 +36,8 @@ public class meat {
 	}
 	
 	
+	//Returns true if meat is in a straight line from the player with no walls between
 	public boolean pieSpotted(maze map, player pie) {
-		
 		int[] piepos = pie.getPosition();
 		boolean ret = false;
 		if(this.position[0] == piepos[0]) {
@@ -71,7 +80,7 @@ public class meat {
 	
 	public void chase(player pie, maze map, int time) {
 		int[] piepos = pie.getPosition();
-		if(time % 15 == 0) {
+		if(true || time % 15 == 0) {
 			if(piepos[0] < this.position[0]) {
 				this.position[0] -= 1;
 			}
@@ -91,7 +100,7 @@ public class meat {
 	
 	public void wander(int direction, maze map, int time) {
 		
-		if(time % 100 == 0) {
+		if(time % 100 == 0 || true) {
 		switch(direction) {
 		
 		case 1: if(this.position[1] == map.getRowSize() - 1) {
@@ -131,6 +140,12 @@ public class meat {
 		}
 		
 		
+	}
+	
+	
+	//Returns a pseudo-random number between 1 and 4 based entirely on the state of the board
+	public int state_direction(maze map, player pie, mince mince) {
+		return ((this.position[0] + this.position[1] + pie.getPosition()[0] + pie.getPosition()[1] + mince.getPosition()[0] + mince.getPosition()[1]) % 17 % 4) + 1;
 	}
 	
 	

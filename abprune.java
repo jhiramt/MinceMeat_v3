@@ -5,7 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.Calendar;
 
-public class GUI extends JFrame implements ActionListener {
+public class abprune extends JFrame implements ActionListener {
 
         /** Displays what is going on */
         private JTextArea outputDisplay;
@@ -18,7 +18,7 @@ public class GUI extends JFrame implements ActionListener {
         //private Action moveAction;
            
         
-        public GUI() {
+        public abprune() {
                 this.buildGUI();
         
                 // Make the GUI visible.
@@ -27,6 +27,146 @@ public class GUI extends JFrame implements ActionListener {
         }
         
         public Color foreground = Color.LIGHT_GRAY;
+
+        public double gameScore(maze map, player pie, mince mince, meat meat){
+              double mincemeatDist =  (Math.sqrt(Math.pow((mince.getPosition()[0] - pie.getPosition()[0]),2) + Math.pow(mince.getPosition()[1] - pie.getPosition()[1], 2))) + (Math.sqrt(Math.pow((meat.getPosition()[0] - pie.getPosition()[0]),2) + Math.pow(meat.getPosition()[1] - pie.getPosition()[1], 2))); //Euclidean distance between mince and player plus euclidean distance between meat and player
+              double minceDist = (Math.sqrt(Math.pow((mince.getPosition()[0] - pie.getPosition()[0]),2) + Math.pow(mince.getPosition()[1] - pie.getPosition()[1], 2)));
+              double keyDist = Math.abs(pie.getPosition()[0] - map.getKeyPos()[0]) + Math.abs(pie.getPosition()[1] - map.getKeyPos()[1]); //Manhattan distance between meat and key
+              if(keyDist == 0){
+                      keyDist = 0.001; //Prevents divide by 0
+              }
+              double doorDist = Math.abs(pie.getPosition()[0] - map.getDoorPos()[0]) + Math.abs(pie.getPosition()[1] - map.getDoorPos()[1]);
+              if(doorDist == 0){
+                      doorDist = 0.001; //Prevents divie by 0
+              }
+              double score = 10 * (mincemeatDist / keyDist) - doorDist; //Larger when pie is close to key and far from mince and meat
+              if(pie.hasKey()){
+                      score = 10 * (mincemeatDist / doorDist) - doorDist;
+              }
+              //return (int)Math.floor((Math.random() * 100) - 50);
+              return score; //Prevents stagnation
+        }
+
+
+
+        public int ab_player_move(maze main_map, player main_pie, bomb main_bomb, meat main_meat, mince main_mince){
+                int return_move = -1;
+                double return_val = Integer.MIN_VALUE;
+                double cur_move_val;
+                maze map = new maze();
+                map.copyMaze(main_map);
+                player pie = new player(main_pie.getPosition()[0], main_pie.getPosition()[1]);
+                mince mince = new mince(main_mince.getPosition()[0], main_mince.getPosition()[1]);
+                meat meat = new meat(main_meat.getPosition()[0], main_meat.getPosition()[1]);
+                bomb bomb = new bomb();
+                for(int move = 1; move <= 4; move++){
+                        cur_move_val = ab_min(Integer.MIN_VALUE, Integer.MAX_VALUE, map, pie, bomb, meat, mince, 0, move);
+                        if(cur_move_val != 404.404 && cur_move_val >= return_val){
+                                return_val = cur_move_val;
+                                //System.out.println("\u001B[32m" + return_val);
+                                return_move = move;
+                        }
+                }
+                //System.out.println("Player: " + return_val + " , " + return_move);
+                return return_move;
+        }
+
+        public int ab_mince_move(maze main_map, player main_pie, bomb main_bomb, meat main_meat, mince main_mince){
+                int return_move = -1;
+                double return_val = Integer.MAX_VALUE;
+                double cur_move_val;
+                maze map = new maze();
+                map.copyMaze(main_map);
+                player pie = new player(main_pie.getPosition()[0], main_pie.getPosition()[1]);
+                mince mince = new mince(main_mince.getPosition()[0], main_mince.getPosition()[1]);
+                meat meat = new meat(main_meat.getPosition()[0], main_meat.getPosition()[1]);
+                bomb bomb = new bomb();
+                for(int move = 0; move <= 7; move++){
+                        cur_move_val = ab_min(Integer.MIN_VALUE, Integer.MAX_VALUE, map, pie, bomb, meat, mince, 1, move);
+                        if(cur_move_val != 404.404 && cur_move_val <= return_val){
+                                return_val = cur_move_val;
+                                //System.out.println("\u001B[31m" + return_val);
+                                return_move = move;
+                        }
+                }
+                //System.out.println("Mince: " + return_val + " , " + return_move);
+                return return_move;
+        }
+
+
+
+        public double ab_max(double alpha, double beta, maze map, player pie, bomb bomb, meat meat, mince mince, int depth, int move){
+                //System.out.println("\u001B[32m" + depth + ", " + move);
+                if(pie.abmoveplayer(move, map, bomb) == false){ //Move player, check if valid
+                        return 404.404;
+                }
+                //(pie.getPosition()[0] == meat.getPosition()[0] && pie.getPosition()[1] == meat.getPosition()[1])
+                if(false || (pie.getPosition()[0] == mince.getPosition()[0] && pie.getPosition()[1] == mince.getPosition()[1]) ){
+                        return Integer.MIN_VALUE;
+                }
+                if(pie.getPosition()[0] == map.getKeyPos()[0] && pie.getPosition()[1] == map.getKeyPos()[1]){
+                        return Integer.MAX_VALUE;
+                }
+                if(depth == 12){
+                        return gameScore(map, pie, mince, meat);
+                }
+                if(meat.pieSpotted(map, pie)) {
+                        meat.chase(pie, map, 100);
+                }
+                else {
+                        int wandir = meat.state_direction(map, pie, mince);
+                        meat.wander(wandir, map, 100);
+                }
+                double value;
+                for(int mince_move = 0; mince_move <=7; mince_move++){
+                        value = ab_min(alpha, beta, map, pie, bomb, meat, mince, depth + 1, mince_move);
+                        if(value != 404.404) {
+                                alpha = Math.max(alpha, value);
+                                if(alpha >= beta){
+                                        return alpha;
+                                }
+                        }
+                }
+                return alpha;
+        }
+
+        
+        public double ab_min(double alpha, double beta, maze map, player pie, bomb bomb, meat meat, mince mince, int depth, int move){
+                //System.out.println("\u001B[31m" + depth + ", " + move);
+                if(mince.abmove(move, map) == false){ //Move mince, check if valid
+                        return 404.404;
+                }
+                //(pie.getPosition()[0] == meat.getPosition()[0] && pie.getPosition()[1] == meat.getPosition()[1])
+                if( false || (pie.getPosition()[0] == mince.getPosition()[0] && pie.getPosition()[1] == mince.getPosition()[1]) ){
+                        return Integer.MIN_VALUE;
+                }
+                if(pie.getPosition()[0] == map.getKeyPos()[0] && pie.getPosition()[1] == map.getKeyPos()[1]){
+                        return Integer.MAX_VALUE;
+                }
+                if(depth == 12){
+                        return gameScore(map, pie, mince, meat);
+                }
+                if(meat.pieSpotted(map, pie)) {
+                        meat.chase(pie, map, 100);
+                }
+                else {
+                        int wandir = meat.state_direction(map, pie, mince);
+                        meat.wander(wandir, map, 100);
+                }
+                double value;
+                for(int pie_move = 1; pie_move <=4; pie_move++){
+                        value = ab_max(alpha, beta, map, pie, bomb, meat, mince, depth + 1, pie_move);
+                        if(value != 404.404){
+                                beta = Math.min(beta, value);
+                                if(alpha >= beta){
+                                        return beta;
+                                }
+                        }
+                }
+                return beta;
+        } 
+        
+
 
         /**
         * Creates the items in the GUI and adds them to the window.
@@ -104,7 +244,7 @@ public class GUI extends JFrame implements ActionListener {
 
         //Called to update what is shown in display
         public void updateGUI(maze map, player pie, Color color, bomb bomb) {
-                String draw = map.printMap(map.getMaze(), pie, bomb, false);
+                String draw = map.printMap(map.getMaze(), pie, bomb, true);
                 this.outputDisplay.setForeground(color);
                 this.outputDisplay.setText(draw);
         }
@@ -130,7 +270,7 @@ public class GUI extends JFrame implements ActionListener {
         
         public static void main(String[] args) {
 	
-        GUI gui = new GUI(); //Creates GUI
+        abprune gui = new abprune(); //Creates GUI
         
         gui.map = new maze(); //Creates and generates maze / map
         
@@ -161,14 +301,11 @@ public class GUI extends JFrame implements ActionListener {
         piepos = pie.getPosition(); //Stores player starting position
         gui.map.setMazePoint(piepos[0], piepos[1], 2); //Places player on map
         
-         
         mincepos = mince.getPosition();
         gui.map.setMazePoint(mincepos[0], mincepos[1], 4);
         
         
         gui.move.setText("5"); //initializes move label to unused value
-        
-        System.out.println("This should execute once!"); 
         
         
         int delay = 10; //milliseconds
@@ -183,12 +320,11 @@ public class GUI extends JFrame implements ActionListener {
         	        if(pie.alive()) {
         	                gui.time += 1;
         	        }
-        	
+
         	        if(!pie.hasKey()) {
         		        gui.map.setMazePoint(gui.map.kp1(), gui.map.kp2(), 7);
         	        }       
 
-        	
                         //Draw door on map
         	        gui.map.setMazePoint(gui.map.dp1(), gui.map.dp2(), 8);
         	        
@@ -207,11 +343,13 @@ public class GUI extends JFrame implements ActionListener {
         	        
 
                         //Pass move command to player
-        	        pie.movePlayer(gui.direction, gui.map, bomb);
+                        /*if(gui.direction != 5){
+        	                pie.abmoveplayer(gui.direction, gui.map, bomb);
+                                System.out.println(gui.gameScore(gui.map, pie, mince, meat));
+                        }*/
              	        
-                        //int pie_wandir = rand.nextInt(0, 5);
-        	        //pie.movePlayer(pie_wandir, gui.map, bomb);
-                        
+                        pie.moveplayer(gui.ab_player_move(gui.map, pie, bomb, meat, mince), gui.map, bomb);
+                        pie.setMoved(true);
 
                         if(pie.isBombPlaced() && bomb.getPlaceTurn()){
                                 bomb.setPlaced(true);
@@ -229,27 +367,27 @@ public class GUI extends JFrame implements ActionListener {
                                 gui.map.setMazePoint(bomb.getPosition()[0], bomb.getPosition()[1], 6);
                         }
                         
-                        if(pie.getMoved()){
+                        if(pie.getMoved()) {
                         bomb.tickFuse();
                         }
-                        if(bomb.getFuse() == 0){
+                        if(bomb.getFuse() == 0) {
                                 bomb.explode(gui.map, pie, meat, mince);
                         }
 
 
+                        //Clear meat's old position
                         if(meat.getAlive()){
                                 gui.map.setMazePoint(meatpos[0], meatpos[1], 0);
                         }
 
-             
-                        if(pie.alive()) {
+
+                        if(pie.alive() && pie.getMoved()) {
                                 if(meat.pieSpotted(gui.map, pie)) {
-                                meat.chase(pie, gui.map, gui.time);
+                                        meat.chase(pie, gui.map, gui.time);
                                 }
-                        else {
-                                int wandir = rand.nextInt(1, 5);
-                                wandir = meat.state_direction(gui.map, pie, mince);
-                                meat.wander(wandir, gui.map, gui.time);
+                                else {
+                                        int wandir = meat.state_direction(gui.map, pie, mince);
+                                        meat.wander(wandir, gui.map, gui.time);
                                 }
                         }
              
@@ -272,8 +410,10 @@ public class GUI extends JFrame implements ActionListener {
                 }
                 
                 //Run Mince's AI
-                if(mince.getAlive()){
-                        mince.hunt(gui.map, pie, gui.time);
+                if(mince.getAlive() && pie.getMoved()) {
+                        //mince.hunt(gui.map, pie, gui.time);
+                        //int mince_wandir = rand.nextInt(0, 8);
+                        mince.abmove(gui.ab_mince_move(gui.map, pie, bomb, meat, mince), gui.map);
                 }
                 
                 //Check for kill condition
@@ -286,7 +426,7 @@ public class GUI extends JFrame implements ActionListener {
                                 pie.setAlive(false);
                                 gui.killer = "Meat";
                         }
-                        else{
+                        else {
                                 gui.killer = "your own bomb!";
                         }
                 }
@@ -296,7 +436,7 @@ public class GUI extends JFrame implements ActionListener {
                         gui.map.setMazePoint(mincepos[0], mincepos[1], 4);
                 }
                      
-                if(piepos[0] == gui.map.dp1() && piepos[1] == gui.map.dp2() && pie.hasKey()) {
+                if((piepos[0] == gui.map.dp1() && piepos[1] == gui.map.dp2() && pie.hasKey()) || pie.hasKey()) {
                         gui.map = new maze();
                         pie.setKey(false);
                         gui.level += 1;
@@ -328,14 +468,15 @@ public class GUI extends JFrame implements ActionListener {
                         gui.updateGUI(gui.map, pie, gui.foreground, bomb);
                 }
                 else {
-                        if(gui.wait >= 0) {
+                        if(gui.wait >= 0 && false) {
                                 gui.deathScreen(gui.level, gui.time, gui.killer);
                                 gui.wait -= 1;
                         }
                         else {
                         //gui.cont.setVisible(true);
                     
-                        gui.wait = 500;
+                        gui.wait = 0;
+                        System.out.println(gui. killer + ", " + gui.level);
                     
                         gui.map = new maze();
                         pie.setAlive(true);
